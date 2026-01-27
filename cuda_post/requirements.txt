@@ -1,0 +1,28 @@
+# Design B - CUDA Post-Processing Environment
+# Compatible with RTX 4070 SUPER (CUDA 12.x)
+# Python 3.10+
+
+# PyTorch with CUDA support (adjust cu118 to match your CUDA version)
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Marching Cubes implementations
+scikit-image>=0.21.0      # CPU baseline (skimage.measure.marching_cubes)
+PyMCubes>=0.1.4           # Fast CPU implementation
+
+# Mesh processing and I/O
+trimesh>=3.23.0           # Mesh utilities, export to OBJ/PLY
+scipy>=1.10.0             # Spatial operations
+
+# Performance monitoring
+psutil>=5.9.0             # System resource monitoring
+gpustat>=1.1.1            # GPU utilization tracking
+
+# Visualization (for poster generation)
+matplotlib>=3.7.0
+Pillow>=10.0.0
+
+# Optional: Advanced GPU marching cubes
+# pytorch3d  # Uncomment if compatible with your CUDA version
+# kaolin      # NVIDIA's 3D deep learning library
