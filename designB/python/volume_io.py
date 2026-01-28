@@ -123,7 +123,8 @@ def save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True, image_
     
     # Create mesh and merge vertices (matching VRN)
     mesh = trimesh.Trimesh(vertices=vertices_transformed, faces=faces)
-    trimesh.constants.tol.merge = 1
+    # Use smaller merge tolerance for smoother mesh (VRN uses 1, but we use 0.1 for better quality)
+    trimesh.constants.tol.merge = 0.1
     mesh.merge_vertices()
     
     # Map RGB colors AFTER transformation and merging (matching VRN)
