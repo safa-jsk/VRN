@@ -133,7 +133,7 @@ Output: 3D Face Meshes (.obj)
 
 **Reason:** Demonstrate CUDA expertise, control over optimization
 
-**Advantage:** 17.8x speedup vs CPU baseline
+**Advantage:** 18.36x speedup vs CPU baseline
 
 **Alternative Considered:** Use existing libraries (PyTorch3D, Kaolin)
 
@@ -190,10 +190,10 @@ Output: 3D Face Meshes (.obj)
 
 | Metric | CPU (scikit-image) | GPU (Custom CUDA) | Speedup |
 |--------|-------------------|-------------------|---------|
-| Average time/volume | 81.7ms | 4.7ms | **17.8x** |
-| Best case | - | - | 18.88x |
-| Worst case | - | - | 16.86x |
-| Std deviation | ±2.2ms | ±0.2ms | Consistent |
+| Average time/volume | 84.2ms | 4.6ms | **18.36x** |
+| Best case | - | - | 19.58x |
+| Worst case | - | - | 16.51x |
+| Std deviation | ±3.1ms | ±0.2ms | Consistent |
 
 ### Resource Utilization
 
@@ -209,8 +209,8 @@ Output: 3D Face Meshes (.obj)
 | Metric | Value |
 |--------|-------|
 | CPU throughput | 12 volumes/second |
-| GPU throughput | 211 volumes/second |
-| Real-time equivalent | 213 FPS |
+| GPU throughput | 217 volumes/second |
+| Real-time equivalent | 217 FPS |
 
 ---
 
@@ -258,8 +258,8 @@ Output: 3D Face Meshes (.obj)
 **Mesh Files:** 43 `.obj` files
 
 **Average Mesh:**
-- Vertices: 172,317
-- Faces: 57,439
+- Vertices: 63,571
+- Faces: ~127,000
 
 **Format:** Wavefront OBJ (industry standard)
 
@@ -321,7 +321,7 @@ Design B demonstrates that:
 
 ✅ **Legacy models can be accelerated via modern CUDA** without retraining or architectural changes
 
-✅ **Modular post-processing achieves significant speedup** (17.8x) through targeted optimization
+✅ **Modular post-processing achieves significant speedup** (18.36x) through targeted optimization
 
 ✅ **Two-stage pipelines maintain reproducibility** while enabling GPU acceleration
 
@@ -380,7 +380,7 @@ Design B demonstrates that:
 
 ---
 
-*Document generated: January 28, 2026*  
+*Document generated: January 29, 2026*  
 *Implementation: Design B - CUDA-Accelerated VRN Pipeline*  
 *Hardware: NVIDIA GeForce RTX 4070 SUPER*  
 *Dataset: AFLW2000-3D (43 image subset)*

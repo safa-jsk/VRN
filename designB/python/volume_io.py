@@ -20,7 +20,7 @@ def load_raw_volume(raw_path, shape=(200, 192, 192), dtype=np.int8):
         dtype: Data type (default: int8 from VRN Torch byte)
     
     Returns:
-        numpy array of shape (200, 192, 192)
+        numpy array of shape (200, 192, 192) as boolean (matching VRN)
     """
     raw_path = Path(raw_path)
     if not raw_path.exists():
@@ -36,7 +36,8 @@ def load_raw_volume(raw_path, shape=(200, 192, 192), dtype=np.int8):
         )
     
     vol = vol.reshape(shape)
-    return vol.astype(np.float32)
+    # Convert to boolean like VRN does (0=False, non-zero=True)
+    return vol.astype(bool)
 
 
 def save_volume_npy(volume, npy_path):
@@ -61,14 +62,17 @@ def load_volume_npy(npy_path):
         npy_path: Path to .npy file
     
     Returns:
-        numpy array
+        numpy array as boolean (matching VRN)
     """
     npy_path = Path(npy_path)
     if not npy_path.exists():
         raise FileNotFoundError(f"Volume file not found: {npy_path}")
     
     vol = np.load(npy_path)
-    return vol.astype(np.float32)
+    # Convert to boolean like VRN does
+    if vol.dtype != bool:
+        vol = vol.astype(np.int8).astype(bool)
+    return vol
 
 
 def volume_to_tensor(volume, device='cuda'):
@@ -93,7 +97,7 @@ def volume_to_tensor(volume, device='cuda'):
     return tensor
 
 
-def save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True):
+def save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True, image_path=None):
     """
     Save mesh to .obj file with VRN coordinate transform
     
@@ -102,6 +106,7 @@ def save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True):
         faces: Mx3 numpy array of triangle indices
         output_path: Output .obj path
         apply_vrn_transform: Apply VRN's coordinate system corrections
+        image_path: Optional path to input image for RGB color mapping
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -116,12 +121,42 @@ def save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True):
     else:
         vertices_transformed = vertices
     
-    # Create mesh and export
+    # Create mesh and merge vertices (matching VRN)
     mesh = trimesh.Trimesh(vertices=vertices_transformed, faces=faces)
+    # Use smaller merge tolerance for smoother mesh (VRN uses 1, but we use 0.1 for better quality)
+    trimesh.constants.tol.merge = 0.1
+    mesh.merge_vertices()
+    
+    # Map RGB colors AFTER transformation and merging (matching VRN)
+    if image_path is not None:
+        try:
+            from PIL import Image
+            img = Image.open(image_path)
+            img = img.resize((192, 192))
+            img_array = np.array(img)
+            
+            # Map transformed vertex X,Y coordinates to image RGB (nearest neighbor)
+            # After transformation, X and Y map to image coordinates
+            x_img = np.clip(mesh.vertices[:, 0].astype(int), 0, 191)
+            y_img = np.clip(mesh.vertices[:, 1].astype(int), 0, 191)
+            
+            # Extract RGB from image
+            if len(img_array.shape) == 3 and img_array.shape[2] >= 3:
+                vertex_colors = img_array[y_img, x_img, :3]
+                mesh.visual.vertex_colors = vertex_colors
+            elif len(img_array.shape) == 2:  # Grayscale
+                gray = img_array[y_img, x_img]
+                vertex_colors = np.stack([gray, gray, gray, np.ones_like(gray) * 255], axis=-1)
+                mesh.visual.vertex_colors = vertex_colors
+        except Exception as e:
+            print(f"Warning: Could not add RGB colors: {e}")
+    
     mesh.export(output_path)
     
     print(f"Saved mesh: {output_path}")
-    print(f"  Vertices: {len(vertices)}, Faces: {len(faces)}")
+    print(f"  Vertices: {len(mesh.vertices)}, Faces: {len(mesh.faces)}")
+    if image_path is not None:
+        print(f"  Colors: RGB")
     return mesh
 
 

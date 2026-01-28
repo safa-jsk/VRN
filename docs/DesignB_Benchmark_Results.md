@@ -7,43 +7,43 @@
 
 ## Executive Summary
 
-The custom CUDA kernel implementation achieved a **17.37x average speedup** over CPU-based marching cubes (scikit-image), with peak performance reaching **18.88x** speedup.
+The custom CUDA kernel implementation achieved a **18.36x average speedup** over CPU-based marching cubes (scikit-image), with peak performance reaching **19.58x** speedup.
 
 ## Performance Metrics
 
 ### CPU Performance (scikit-image)
-- **Average time:** 81.0 ms per volume
-- **Min time:** 78.1 ms
-- **Max time:** 87.1 ms
-- **Std deviation:** 2.2 ms
+- **Average time:** 84.2 ms per volume
+- **Min time:** 80.8 ms
+- **Max time:** 97.4 ms
+- **Std deviation:** 3.1 ms
 
 ### GPU Performance (Custom CUDA Kernel)
-- **Average time:** 4.7 ms per volume
-- **Min time:** 4.2 ms
-- **Max time:** 5.7 ms
+- **Average time:** 4.6 ms per volume
+- **Min time:** 4.3 ms
+- **Max time:** 5.1 ms
 - **Std deviation:** 0.2 ms
 
 ### Speedup Analysis
-- **Average speedup:** 17.37x
-- **Minimum speedup:** 15.07x
-- **Maximum speedup:** 18.88x
+- **Average speedup:** 18.36x
+- **Minimum speedup:** 16.51x
+- **Maximum speedup:** 19.58x
 - **Consistency:** Very stable performance (±0.2ms std dev)
 
 ## Real-World Impact
 
 ### Processing Throughput
 - **CPU baseline:** ~12 volumes/second
-- **GPU accelerated:** ~213 volumes/second
-- **Improvement:** 17.7x faster batch processing
+- **GPU accelerated:** ~217 volumes/second
+- **Improvement:** 18.4x faster batch processing
 
 ### Latency
-- **CPU:** 81ms per face (not real-time)
-- **GPU:** 4.7ms per face (213 FPS - real-time capable)
+- **CPU:** 84.2ms per face (not real-time)
+- **GPU:** 4.6ms per face (217 FPS - real-time capable)
 
 ### Total Dataset Processing
-- **CPU time (43 volumes):** 3.48 seconds
+- **CPU time (43 volumes):** 3.62 seconds
 - **GPU time (43 volumes):** 0.20 seconds
-- **Time saved:** 3.28 seconds (94% reduction)
+- **Time saved:** 3.42 seconds (94% reduction)
 
 ## GPU Resource Utilization
 
@@ -119,10 +119,10 @@ Generated plots:
 
 ## Conclusion
 
-The custom CUDA kernel successfully accelerates marching cubes mesh extraction by **17.37x on average**, demonstrating that GPU parallelization is highly effective for this workload. The implementation achieves:
+The custom CUDA kernel successfully accelerates marching cubes mesh extraction by **18.36x on average**, demonstrating that GPU parallelization is highly effective for this workload. The implementation achieves:
 
-✅ **Real-time performance:** 4.7ms average (213 FPS capability)  
-✅ **Consistent speedup:** 15-19x across all volumes  
+✅ **Real-time performance:** 4.6ms average (217 FPS capability)  
+✅ **Consistent speedup:** 16.5-19.6x across all volumes  
 ✅ **Low memory overhead:** <30MB GPU allocation  
 ✅ **Production ready:** Stable, repeatable results  
 
