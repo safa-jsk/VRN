@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Design B - GPU-Accelerated Marching Cubes
-Implements CUDA-accelerated isosurface extraction with CPU fallback
+Implements CUDA-accelerated isosurface extraction with custom CUDA kernel
 """
 
 import numpy as np
@@ -10,20 +10,34 @@ import time
 from pathlib import Path
 from skimage.measure import marching_cubes as marching_cubes_cpu
 import argparse
+import sys
+import os
 
 from volume_io import (
     load_volume_npy, load_raw_volume, save_mesh_obj,
     volume_to_tensor, get_mesh_stats
 )
 
+# Add cuda_kernels to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+# Try to import custom CUDA kernel
+USE_CUSTOM_CUDA = False
+try:
+    from cuda_kernels.cuda_marching_cubes import marching_cubes_gpu
+    USE_CUSTOM_CUDA = True
+    print("✓ Using custom CUDA marching cubes kernel")
+except ImportError as e:
+    print(f"⚠ Custom CUDA kernel not available: {e}")
+    print("  Falling back to CPU scikit-image implementation")
+    USE_CUSTOM_CUDA = False
+
 
 def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
     """
-    GPU-accelerated marching cubes using PyTorch
+    GPU-accelerated marching cubes using custom CUDA kernel.
     
-    Note: PyTorch doesn't have native marching cubes, so this is a 
-    placeholder for future GPU implementation (e.g., using pytorch3d or kaolin)
-    For now, falls back to CPU implementation
+    Falls back to CPU scikit-image if CUDA kernel not available.
     
     Args:
         volume_tensor: torch.Tensor on GPU (D, H, W)
@@ -33,11 +47,23 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
         vertices: Nx3 numpy array
         faces: Mx3 numpy array
     """
-    # Convert back to CPU for marching cubes (CPU implementation)
-    # In future, could use pytorch3d.ops.cubify or custom CUDA kernel
-    volume_cpu = volume_tensor.cpu().numpy()
-    
-    # Use scikit-image marching cubes on CPU
+    if USE_CUSTOM_CUDA and torch.cuda.is_available():
+        # Use custom CUDA kernel
+        if not volume_tensor.is_cuda:
+            volume_tensor = volume_tensor.cuda()
+        
+        verts, faces = marching_cubes_gpu(volume_tensor, isolevel=threshold, device='cuda')
+        
+        # Convert to numpy for compatibility
+        verts = verts.cpu().numpy()
+        faces = faces.cpu().numpy()
+        
+        return verts, faces
+    else:
+        # Fall back to CPU scikit-image
+        volume_cpu = volume_tensor.cpu().numpy()
+        
+        # Use scikit-image marching cubes on CPU
     vertices, faces, normals, values = marching_cubes_cpu(
         volume_cpu, 
         level=threshold,
