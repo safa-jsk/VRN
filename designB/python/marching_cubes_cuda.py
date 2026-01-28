@@ -34,15 +34,15 @@ except ImportError as e:
     USE_CUSTOM_CUDA = False
 
 
-def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
+def marching_cubes_gpu_pytorch(volume_tensor, threshold=0.5):
     """
     GPU-accelerated marching cubes using custom CUDA kernel.
     
     Falls back to CPU scikit-image if CUDA kernel not available.
     
     Args:
-        volume_tensor: torch.Tensor on GPU (D, H, W)
-        threshold: Isosurface threshold value
+        volume_tensor: torch.Tensor on GPU (D, H, W) - boolean volume
+        threshold: Isosurface threshold value (0.5 for boolean volumes)
     
     Returns:
         vertices: Nx3 numpy array
@@ -52,6 +52,10 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
         # Use custom CUDA kernel
         if not volume_tensor.is_cuda:
             volume_tensor = volume_tensor.cuda()
+        
+        # Convert boolean to float for CUDA kernel
+        if volume_tensor.dtype == torch.bool:
+            volume_tensor = volume_tensor.float()
         
         verts, faces = marching_cubes_gpu(volume_tensor, isolevel=threshold, device='cuda')
         
@@ -64,6 +68,10 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
         # Fall back to CPU scikit-image
         volume_cpu = volume_tensor.cpu().numpy()
         
+        # Convert boolean to float for scikit-image compatibility
+        if volume_cpu.dtype == bool:
+            volume_cpu = volume_cpu.astype(np.float32)
+        
         # Use scikit-image marching cubes on CPU
     vertices, faces, normals, values = marching_cubes_cpu(
         volume_cpu, 
@@ -74,18 +82,22 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=10.0):
     return vertices, faces
 
 
-def marching_cubes_baseline(volume, threshold=10.0):
+def marching_cubes_baseline(volume, threshold=0.5):
     """
     CPU baseline marching cubes using scikit-image
     
     Args:
-        volume: numpy array (D, H, W)
-        threshold: Isosurface threshold value
+        volume: numpy array (D, H, W) - boolean volume
+        threshold: Isosurface threshold value (0.5 for boolean volumes)
     
     Returns:
         vertices: Nx3 numpy array
         faces: Mx3 numpy array
     """
+    # Convert boolean to float for scikit-image compatibility
+    if volume.dtype == bool:
+        volume = volume.astype(np.float32)
+    
     vertices, faces, normals, values = marching_cubes_cpu(
         volume,
         level=threshold,
@@ -96,8 +108,8 @@ def marching_cubes_baseline(volume, threshold=10.0):
 
 
 def process_volume_to_mesh(volume_path, output_path, 
-                           use_gpu=True, threshold=10.0, 
-                           timing_log=None):
+                           use_gpu=True, threshold=0.5, 
+                           timing_log=None, image_path=None):
     """
     Complete pipeline: volume -> marching cubes -> mesh export
     
@@ -105,8 +117,9 @@ def process_volume_to_mesh(volume_path, output_path,
         volume_path: Path to .npy or .raw volume file
         output_path: Path to output .obj file
         use_gpu: Use GPU if available (falls back to CPU)
-        threshold: Isosurface threshold
+        threshold: Isosurface threshold (0.5 for boolean volumes)
         timing_log: Optional file to append timing data
+        image_path: Optional path to input image for RGB color mapping
     
     Returns:
         dict with processing stats
@@ -162,8 +175,11 @@ def process_volume_to_mesh(volume_path, output_path,
             t_mc = time.time()
             stats['time_marching_cubes'] = t_mc - t_load
         
-        # Save mesh
-        mesh = save_mesh_obj(vertices, faces, output_path, apply_vrn_transform=True)
+        # Save mesh with transformation and RGB colors
+        # (colors are mapped AFTER transformation inside save_mesh_obj)
+        mesh = save_mesh_obj(vertices, faces, output_path, 
+                            apply_vrn_transform=True, 
+                            image_path=image_path)
         t_save = time.time()
         stats['time_save'] = t_save - t_mc
         
@@ -204,8 +220,8 @@ def process_volume_to_mesh(volume_path, output_path,
 
 
 def batch_process_volumes(input_dir, output_dir, 
-                          use_gpu=True, threshold=10.0,
-                          pattern='*.npy'):
+                          use_gpu=True, threshold=0.5,
+                          pattern='*.npy', image_dir=None):
     """
     Batch process all volumes in a directory
     
@@ -213,8 +229,9 @@ def batch_process_volumes(input_dir, output_dir,
         input_dir: Directory containing .npy or .raw volume files
         output_dir: Directory for output .obj meshes
         use_gpu: Use GPU if available
-        threshold: Isosurface threshold
+        threshold: Isosurface threshold (0.5 for boolean volumes)
         pattern: Glob pattern for volume files
+        image_dir: Optional directory containing input images for RGB colors
     
     Returns:
         list of processing stats
@@ -257,12 +274,24 @@ def batch_process_volumes(input_dir, output_dir,
         output_name = volume_path.stem + '.obj'
         output_path = output_dir / output_name
         
+        # Find corresponding input image if image_dir provided
+        image_path = None
+        if image_dir is not None:
+            image_dir_path = Path(image_dir)
+            # Try common image extensions
+            for ext in ['.jpg', '.png', '.jpeg']:
+                potential_img = image_dir_path / (volume_path.stem + ext)
+                if potential_img.exists():
+                    image_path = potential_img
+                    break
+        
         # Process
         stats = process_volume_to_mesh(
             volume_path, output_path,
             use_gpu=use_gpu,
             threshold=threshold,
-            timing_log=timing_log
+            timing_log=timing_log,
+            image_path=image_path
         )
         all_stats.append(stats)
     
@@ -310,12 +339,14 @@ if __name__ == '__main__':
                        help='Input volume file (.npy/.raw) or directory')
     parser.add_argument('--output', '-o', required=True,
                        help='Output mesh file (.obj) or directory')
-    parser.add_argument('--threshold', '-t', type=float, default=10.0,
-                       help='Isosurface threshold (default: 10.0)')
+    parser.add_argument('--threshold', '-t', type=float, default=0.5,
+                       help='Isosurface threshold (default: 0.5 for boolean volumes)')
     parser.add_argument('--cpu', action='store_true',
                        help='Force CPU mode (disable GPU)')
     parser.add_argument('--pattern', default='*.npy',
                        help='Glob pattern for batch mode (default: *.npy)')
+    parser.add_argument('--image-dir', type=str, default=None,
+                       help='Directory with input images for RGB color mapping')
     
     args = parser.parse_args()
     
@@ -330,15 +361,27 @@ if __name__ == '__main__':
             input_path, output_path,
             use_gpu=use_gpu,
             threshold=args.threshold,
-            pattern=args.pattern
+            pattern=args.pattern,
+            image_dir=args.image_dir
         )
     else:
         # Single file mode
         print("Running in SINGLE FILE mode")
+        # For single file, try to find image with same basename
+        image_path = None
+        if args.image_dir:
+            image_dir_path = Path(args.image_dir)
+            for ext in ['.jpg', '.png', '.jpeg']:
+                potential_img = image_dir_path / (input_path.stem + ext)
+                if potential_img.exists():
+                    image_path = potential_img
+                    break
+        
         stats = process_volume_to_mesh(
             input_path, output_path,
             use_gpu=use_gpu,
-            threshold=args.threshold
+            threshold=args.threshold,
+            image_path=image_path
         )
         
         if not stats['success']:

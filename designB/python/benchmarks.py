@@ -22,7 +22,7 @@ from volume_io import load_volume_npy, volume_to_tensor
 from marching_cubes_cuda import marching_cubes_baseline, marching_cubes_gpu_pytorch
 
 
-def benchmark_single_volume(volume_path, threshold=10.0, n_runs=3):
+def benchmark_single_volume(volume_path, threshold=0.5, n_runs=3):
     """
     Benchmark GPU vs CPU marching cubes on a single volume
     
