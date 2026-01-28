@@ -1,0 +1,19 @@
+# Design B: CUDA-Accelerated VRN Pipeline
+# Python dependencies for GPU-accelerated marching cubes
+
+# Core dependencies
+torch>=2.1.0
+pytorch3d>=0.7.5
+numpy>=1.26.0
+
+# Mesh processing
+scikit-image>=0.22.0
+trimesh>=4.0.0
+
+# Benchmarking and visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+pandas>=2.0.0
+
+# Utilities
+tqdm>=4.66.0

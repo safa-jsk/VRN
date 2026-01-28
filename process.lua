@@ -1,6 +1,7 @@
 #!/usr/bin/env th
 local nn = require 'nn'
 local image = require 'image'
+local paths = require 'paths'
 
 cmd = torch.CmdLine()
 cmd:option('--model', 'model.t7', 'Trained network model')
