@@ -1,6 +1,6 @@
 # Design A vs Design B Comparison
 
-**Generated:** 2026-01-28 23:06:34  
+**Generated:** 2026-01-28 23:18:46  
 **Dataset:** AFLW2000-3D subset (43 volumes)  
 **GPU:** NVIDIA GeForce RTX 4070 SUPER
 
@@ -17,18 +17,18 @@ This report compares the performance of two VRN pipeline designs:
 
 | Metric | CPU (scikit-image) | GPU (CUDA kernel) | Improvement |
 |--------|-------------------|-------------------|-------------|
-| Average time per volume | 83.1 ms | 4.8 ms | **17.90x faster** |
-| Total time (43 volumes) | 3.57s | 0.20s | 17.49x faster |
-| Min speedup | - | - | 16.51x |
-| Max speedup | - | - | 19.19x |
-| Throughput | 12.0 volumes/sec | 210.4 volumes/sec | +198.4 vol/sec |
+| Average time per volume | 84.2 ms | 4.8 ms | **18.04x faster** |
+| Total time (43 volumes) | 3.62s | 0.21s | 17.62x faster |
+| Min speedup | - | - | 15.33x |
+| Max speedup | - | - | 20.18x |
+| Throughput | 11.9 volumes/sec | 209.3 volumes/sec | +197.4 vol/sec |
 
 ### Real-Time Performance Analysis
 
 | Design | Processing Time | Frame Rate Equivalent | Real-Time Capable? |
 |--------|----------------|----------------------|-------------------|
-| Design A (CPU) | 83.1 ms/volume | 12.0 FPS | ❌ No (~12 FPS) |
-| Design B (GPU) | 4.8 ms/volume | 210.4 FPS | ✅ Yes (~210 FPS) |
+| Design A (CPU) | 84.2 ms/volume | 11.9 FPS | ❌ No (~12 FPS) |
+| Design B (GPU) | 4.8 ms/volume | 209.3 FPS | ✅ Yes (~209 FPS) |
 
 **Conclusion:** Design B achieves real-time performance (>30 FPS), making it suitable for interactive applications.
 
@@ -42,7 +42,7 @@ VRN Forward Pass (Torch7/CPU) [~2-3s per image]
     ↓
 Volume Export (.raw format) [~50ms]
     ↓
-Marching Cubes (scikit-image/CPU) [83ms]
+Marching Cubes (scikit-image/CPU) [84ms]
     ↓
 Output Mesh (.obj)
 ```
@@ -67,12 +67,12 @@ Output Mesh (.obj)
 ## Key Insights
 
 ### 1. Marching Cubes Speedup
-- **17.9x average speedup** on marching cubes extraction
-- GPU processing is **78ms faster** per volume
-- Saved **3.37s** across 43 volumes
+- **18.0x average speedup** on marching cubes extraction
+- GPU processing is **79ms faster** per volume
+- Saved **3.41s** across 43 volumes
 
 ### 2. Pipeline Impact
-- Marching cubes represents **~3.2% of CPU pipeline time**
+- Marching cubes represents **~3.3% of CPU pipeline time**
 - After GPU acceleration: **~0.2% of GPU pipeline time**
 - **Overall pipeline speedup:** Minimal (~3-4%) because VRN forward pass still dominates
 
@@ -103,7 +103,7 @@ Output Mesh (.obj)
 
 1. **Pre-computed volumes:** If VRN volumes are already available, Design B provides **18x faster** mesh extraction
 2. **Batch processing:** Processing 43 volumes saves **3.4s** (94% time reduction)
-3. **Interactive applications:** 210 FPS throughput enables real-time visualization
+3. **Interactive applications:** 209 FPS throughput enables real-time visualization
 4. **Research workflows:** Fast iteration for parameter tuning and experimentation
 
 ### When to Use Design A
@@ -126,25 +126,25 @@ Output Mesh (.obj)
 
 ### Top 5 Fastest Speedups
 
-1. **image00014.npy:** 19.19x (83.4ms → 4.5ms)
-2. **image00008.npy:** 19.09x (85.3ms → 4.7ms)
-3. **image00022.npy:** 18.89x (85.7ms → 4.6ms)
-4. **image00053.npy:** 18.69x (86.3ms → 4.6ms)
-5. **image00006.npy:** 18.67x (87.0ms → 4.7ms)
+1. **image00036.npy:** 20.18x (88.6ms → 4.6ms)
+2. **image00019.npy:** 19.87x (86.3ms → 4.5ms)
+3. **image00035.npy:** 19.30x (84.2ms → 4.5ms)
+4. **image00074.npy:** 19.22x (85.5ms → 4.6ms)
+5. **image00004.npy:** 18.97x (85.3ms → 4.6ms)
 
 ### Bottom 5 Speedups (Still Significant)
 
-1. **image00046.npy:** 16.51x (79.6ms → 4.9ms)
-2. **image00002.jpg.crop.npy:** 16.67x (88.3ms → 6.7ms)
-3. **image00065.npy:** 16.86x (82.1ms → 4.9ms)
-4. **image00051.npy:** 16.95x (79.9ms → 4.7ms)
-5. **image00072.npy:** 16.96x (85.7ms → 5.0ms)
+1. **image00002.jpg.crop.npy:** 15.33x (94.6ms → 7.3ms)
+2. **image00063.npy:** 16.00x (82.5ms → 5.4ms)
+3. **image00044.npy:** 17.08x (80.4ms → 4.8ms)
+4. **image00051.npy:** 17.39x (82.2ms → 4.6ms)
+5. **image00056.npy:** 17.43x (79.9ms → 4.6ms)
 
 ## Conclusion
 
-Design B's custom CUDA marching cubes kernel provides **17.9x average speedup** over Design A's CPU implementation. While this represents only a **~3.1% improvement** in total pipeline time (due to VRN bottleneck), it enables:
+Design B's custom CUDA marching cubes kernel provides **18.0x average speedup** over Design A's CPU implementation. While this represents only a **~3.2% improvement** in total pipeline time (due to VRN bottleneck), it enables:
 
-✅ **Real-time mesh extraction** (210 FPS vs 12 FPS)  
+✅ **Real-time mesh extraction** (209 FPS vs 12 FPS)  
 ✅ **Efficient batch processing** (3.4s saved on 43 volumes)  
 ✅ **Low GPU memory overhead** (28MB allocation)  
 ✅ **Consistent performance** (15-19x speedup across all volumes)  
@@ -153,6 +153,6 @@ Design B's custom CUDA marching cubes kernel provides **17.9x average speedup** 
 
 ---
 
-*Generated from benchmarks run on 2026-01-28 23:06:34*  
+*Generated from benchmarks run on 2026-01-28 23:18:46*  
 *Dataset: AFLW2000-3D (43 volumes, 200×192×192 voxels each)*  
 *Hardware: NVIDIA GeForce RTX 4070 SUPER*
