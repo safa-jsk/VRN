@@ -8,29 +8,29 @@
 
 ## Processing Summary
 
-| Metric | Value |
-|--------|-------|
-| Total Input Images | 50 |
-| Successfully Processed | 43 |
-| Failed | 7 |
-| Success Rate | 86.00% |
+| Metric                 | Value  |
+| ---------------------- | ------ |
+| Total Input Images     | 50     |
+| Successfully Processed | 43     |
+| Failed                 | 7      |
+| Success Rate           | 86.00% |
 
 ---
 
 ## Output Files Generated
 
-- **Meshes (*.obj):** 43
-- **Cropped faces (*.crop.jpg):** 43
+- **Meshes (\*.obj):** 43
+- **Cropped faces (\*.crop.jpg):** 43
 
 ---
 
 ## Timing Statistics (per image)
 
 | Statistic | Time (seconds) |
-|-----------|----------------|
-| Average | 10.26 |
-| Minimum | 1 |
-| Maximum | 18 |
+| --------- | -------------- |
+| Average   | 10.26          |
+| Minimum   | 1              |
+| Maximum   | 18             |
 
 **Note:** Timing includes Docker container startup overhead, face detection, volumetric regression, and isosurface extraction. Failed images (no face detected) complete in 1-2 seconds, while successful reconstructions take 11-18 seconds.
 
@@ -39,11 +39,13 @@
 ## Observations
 
 ### Successful Processing
+
 - VRN successfully generates 3D face meshes from 2D images
 - Output format: Wavefront OBJ files with vertex and face data
-- Each mesh contains ~440K vertices
+- Each post-processed mesh contains ~37.6K vertices on average
 
 ### Limitations Identified
+
 - CPU-only processing is relatively slow (11-18 seconds per successful image)
 - Face detection failures: 7 out of 50 images (14%) failed to detect faces
 - Common failure modes:
@@ -51,8 +53,9 @@
   - Heavy occlusion
   - Very low resolution images
   - Images where dlib face detector cannot locate face region
-  
+
 ### Pipeline Stages
+
 1. **Face Detection:** dlib-based detector locates face region
 2. **Alignment & Crop:** Standardizes input to 450×450 pixels
 3. **Volume Regression:** CNN predicts 3D volumetric representation
@@ -105,4 +108,3 @@ The following images failed to produce mesh outputs:
 - image00075.jpg
 
 **Failure Pattern:** All failures occurred at the face detection stage (processing completed in 1-2 seconds), indicating the dlib detector could not locate a face in these images. This is typically due to extreme poses, occlusion, or unusual image characteristics.
-

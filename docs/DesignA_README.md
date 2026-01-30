@@ -65,7 +65,7 @@ For each input image `imageXXXXX.jpg`, VRN generates:
 
 - **Processing time:** ~18-20 seconds per image (CPU-only)
 - **Success rate:** Depends on face detection (frontal/near-frontal faces work best)
-- **Output size:** ~4-5 MB per mesh, ~440K vertices
+- **Output size:** ~4-5 MB per mesh, ~37.6K vertices after post-processing
 
 ## Viewing Results
 
