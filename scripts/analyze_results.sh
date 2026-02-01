@@ -96,7 +96,7 @@ cat > "${RESULTS_FILE}" << EOF
 ### Successful Processing
 - VRN successfully generates 3D face meshes from 2D images
 - Output format: Wavefront OBJ files with vertex and face data
-- Each mesh contains ~440K vertices
+- Each post-processed mesh contains ~37.6K vertices on average
 
 ### Limitations Identified
 - CPU-only processing is relatively slow (11-18 seconds per successful image)
@@ -171,6 +171,39 @@ EOF
 fi
 
 cat >> "${RESULTS_FILE}" << EOF
+
+EOF
+
+# Mesh metrics (Chamfer, F1_tau, F1_2tau)
+METRICS_DIR="${OUTPUT_DIR}/metrics"
+METRICS_CSV="${METRICS_DIR}/mesh_metrics.csv"
+METRICS_SUMMARY="${METRICS_DIR}/mesh_metrics_summary.txt"
+
+mkdir -p "${METRICS_DIR}"
+
+echo ""
+echo "================================================"
+echo "Design A Mesh Metrics"
+echo "================================================"
+
+python3 scripts/designA_mesh_metrics.py \
+    --pred-dir "${OUTPUT_DIR}" \
+    --ref-dir "data/out/designB/meshes" \
+    --output-csv "${METRICS_CSV}" \
+    | tee "${METRICS_SUMMARY}"
+
+# Append metrics summary to the report
+cat >> "${RESULTS_FILE}" << EOF
+
+---
+
+## Mesh Metrics (Design A vs Reference)
+
+**CSV Output:** \`${METRICS_CSV}\`
+
+\`\`\`
+$(cat "${METRICS_SUMMARY}")
+\`\`\`
 
 EOF
 
