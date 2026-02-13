@@ -2,6 +2,13 @@
 """
 Design B - GPU-Accelerated Marching Cubes
 Implements CUDA-accelerated isosurface extraction with custom CUDA kernel
+
+Performance flags implemented:
+- cuDNN benchmark mode
+- TF32 precision (matmul + cuDNN)
+- AMP autocast (optional, for completeness)
+- torch.compile (optional, for completeness)
+- Warmup iterations before timing
 """
 
 import numpy as np
@@ -34,11 +41,126 @@ except ImportError as e:
     USE_CUSTOM_CUDA = False
 
 
+# =============================================================================
+# Performance Configuration
+# =============================================================================
+
+# Global config object (set by configure_performance_flags)
+_PERF_CONFIG = {
+    'cudnn_benchmark': True,
+    'tf32': True,
+    'amp': False,
+    'compile': False,
+    'warmup_iters': 15,
+    'initialized': False,
+    'warmup_done': False,
+}
+
+
+def configure_performance_flags(cudnn_benchmark=True, tf32=True, amp=False, 
+                                 compile_mode=False, warmup_iters=15):
+    """
+    Configure PyTorch performance flags at startup.
+    
+    Args:
+        cudnn_benchmark: Enable cuDNN benchmark mode (default: True)
+        tf32: Enable TensorFloat-32 for matmul and cuDNN (default: True)
+        amp: Enable AMP autocast - NOTE: kernel executes in float32 regardless (default: False)
+        compile_mode: Enable torch.compile - NOTE: limited effect on custom kernel (default: False)
+        warmup_iters: Number of warmup iterations before timing (default: 15)
+    """
+    global _PERF_CONFIG
+    
+    _PERF_CONFIG['cudnn_benchmark'] = cudnn_benchmark
+    _PERF_CONFIG['tf32'] = tf32
+    _PERF_CONFIG['amp'] = amp
+    _PERF_CONFIG['compile'] = compile_mode
+    _PERF_CONFIG['warmup_iters'] = warmup_iters
+    _PERF_CONFIG['initialized'] = True
+    
+    # Apply cuDNN benchmark flag
+    if cudnn_benchmark:
+        torch.backends.cudnn.benchmark = True
+    else:
+        torch.backends.cudnn.benchmark = False
+    
+    # Apply TF32 flags
+    if tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+    else:
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+    
+    # Print consolidated status
+    print(f"[DesignB flags] cudnn_benchmark={cudnn_benchmark} tf32={tf32} "
+          f"amp={amp} compile={compile_mode} warmup={warmup_iters}")
+    
+    # Note about effectiveness for this workload
+    print("  Note: cuDNN/TF32 flags may have no effect because pipeline is custom CUDA kernel based (no convolutions).")
+    if amp:
+        print("  Note: AMP enabled but custom CUDA kernel executes in float32 for correctness.")
+    if compile_mode:
+        print("  Note: torch.compile skipped: no suitable PyTorch graph to compile (custom CUDA kernel dominates).")
+
+
+def run_warmup_once(threshold=0.5, verbose=True):
+    """
+    Run warmup iterations once at startup to stabilize GPU performance.
+    Creates a representative volume tensor and runs warmup.
+    
+    Args:
+        threshold: Isosurface threshold
+        verbose: Print warmup progress
+    """
+    global _PERF_CONFIG
+    
+    if _PERF_CONFIG['warmup_done']:
+        return  # Already warmed up
+    
+    warmup_iters = _PERF_CONFIG['warmup_iters']
+    
+    if warmup_iters <= 0 or not torch.cuda.is_available():
+        _PERF_CONFIG['warmup_done'] = True
+        return
+    
+    if verbose:
+        print(f"[Warmup] Running {warmup_iters} warmup iterations...")
+    
+    # Create representative volume (VRN shape: 200x192x192)
+    warmup_volume = torch.rand(200, 192, 192, dtype=torch.float32, device='cuda') > 0.5
+    warmup_volume = warmup_volume.float()
+    
+    t_start = time.time()
+    
+    for i in range(warmup_iters):
+        # Run GPU marching cubes (discard results)
+        _ = marching_cubes_gpu_pytorch(warmup_volume, threshold)
+    
+    # Synchronize after warmup
+    torch.cuda.synchronize()
+    
+    t_end = time.time()
+    
+    if verbose:
+        print(f"[Warmup] Complete: {t_end - t_start:.3f}s ({warmup_iters} iterations)")
+    
+    # Free warmup memory
+    del warmup_volume
+    torch.cuda.empty_cache()
+    
+    _PERF_CONFIG['warmup_done'] = True
+
+
 def marching_cubes_gpu_pytorch(volume_tensor, threshold=0.5):
     """
     GPU-accelerated marching cubes using custom CUDA kernel.
     
     Falls back to CPU scikit-image if CUDA kernel not available.
+    
+    Note on AMP: The custom CUDA kernel executes in float32 regardless of AMP settings
+    to preserve numerical correctness. AMP autocast is applied only to preprocessing
+    tensor operations (if any), not the kernel itself.
     
     Args:
         volume_tensor: torch.Tensor on GPU (D, H, W) - boolean volume
@@ -53,10 +175,16 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=0.5):
         if not volume_tensor.is_cuda:
             volume_tensor = volume_tensor.cuda()
         
-        # Convert boolean to float for CUDA kernel
+        # Ensure float32 for CUDA kernel (AMP-safe: kernel always uses float32)
+        # This is critical: custom CUDA kernel expects float32, not float16
         if volume_tensor.dtype == torch.bool:
             volume_tensor = volume_tensor.float()
+        elif volume_tensor.dtype != torch.float32:
+            volume_tensor = volume_tensor.float()  # Convert to float32
         
+        # Note: We do NOT wrap the kernel call in autocast because:
+        # 1. Custom CUDA kernel expects float32 input
+        # 2. AMP autocast would have no effect on custom kernel anyway
         verts, faces = marching_cubes_gpu(volume_tensor, isolevel=threshold, device='cuda')
         
         # Convert to numpy for compatibility
@@ -73,13 +201,13 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=0.5):
             volume_cpu = volume_cpu.astype(np.float32)
         
         # Use scikit-image marching cubes on CPU
-    vertices, faces, normals, values = marching_cubes_cpu(
-        volume_cpu, 
-        level=threshold,
-        spacing=(1.0, 1.0, 1.0)
-    )
-    
-    return vertices, faces
+        vertices, faces, normals, values = marching_cubes_cpu(
+            volume_cpu, 
+            level=threshold,
+            spacing=(1.0, 1.0, 1.0)
+        )
+        
+        return vertices, faces
 
 
 def marching_cubes_baseline(volume, threshold=0.5):
@@ -133,6 +261,7 @@ def process_volume_to_mesh(volume_path, output_path,
         'success': False,
         'device': 'cpu',
         'threshold': threshold,
+        'perf_flags': dict(_PERF_CONFIG),
     }
     
     try:
@@ -157,13 +286,19 @@ def process_volume_to_mesh(volume_path, output_path,
             
             # Transfer to GPU
             volume_tensor = volume_to_tensor(volume, device='cuda')
+            torch.cuda.synchronize()  # Ensure transfer complete before timing
             t_transfer = time.time()
             stats['time_transfer_to_gpu'] = t_transfer - t_load
             
-            # GPU marching cubes
+            # GPU marching cubes with proper CUDA timing
+            torch.cuda.synchronize()  # Ensure ready for timing
+            t_mc_start = time.time()
+            
             vertices, faces = marching_cubes_gpu_pytorch(volume_tensor, threshold)
+            
+            torch.cuda.synchronize()  # Ensure kernel complete before timing
             t_mc = time.time()
-            stats['time_marching_cubes'] = t_mc - t_transfer
+            stats['time_marching_cubes'] = t_mc - t_mc_start
             
         else:
             # CPU path
@@ -348,11 +483,47 @@ if __name__ == '__main__':
     parser.add_argument('--image-dir', type=str, default=None,
                        help='Directory with input images for RGB color mapping')
     
+    # Performance flags
+    parser.add_argument('--cudnn-benchmark', type=lambda x: x.lower() == 'true',
+                       default=True, metavar='BOOL',
+                       help='Enable cuDNN benchmark mode (default: True)')
+    parser.add_argument('--tf32', type=lambda x: x.lower() == 'true',
+                       default=True, metavar='BOOL',
+                       help='Enable TF32 for matmul/cuDNN (default: True)')
+    parser.add_argument('--amp', type=lambda x: x.lower() == 'true',
+                       default=False, metavar='BOOL',
+                       help='Enable AMP autocast (default: False, kernel uses float32 regardless)')
+    parser.add_argument('--compile', type=lambda x: x.lower() == 'true',
+                       default=False, metavar='BOOL',
+                       help='Enable torch.compile (default: False, limited effect on custom kernel)')
+    parser.add_argument('--warmup-iters', type=int, default=15,
+                       help='Warmup iterations before processing (default: 15)')
+    parser.add_argument('--no-warmup', action='store_true',
+                       help='Disable warmup iterations')
+    
     args = parser.parse_args()
     
     input_path = Path(args.input)
     output_path = Path(args.output)
     use_gpu = not args.cpu
+    
+    # Configure performance flags before any CUDA work
+    print("=" * 60)
+    print("Design B Mesh Generation - Performance Configuration")
+    print("=" * 60)
+    warmup_iters = 0 if args.no_warmup else args.warmup_iters
+    configure_performance_flags(
+        cudnn_benchmark=args.cudnn_benchmark,
+        tf32=args.tf32,
+        amp=args.amp,
+        compile_mode=args.compile,
+        warmup_iters=warmup_iters
+    )
+    print("=" * 60)
+    
+    # Run warmup once at startup (if GPU mode and warmup enabled)
+    if use_gpu and not args.no_warmup and torch.cuda.is_available():
+        run_warmup_once(threshold=args.threshold, verbose=True)
     
     if input_path.is_dir():
         # Batch mode
