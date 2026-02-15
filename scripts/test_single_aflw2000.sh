@@ -9,7 +9,7 @@ OUTPUT_DIR="data/out/designA"
 mkdir -p "${OUTPUT_DIR}"
 
 # Get first image
-test_img=$(ls ${INPUT_DIR}/*.jpg | head -1)
+test_img=$(ls ${INPUT_DIR}/*.JPG | head -1)
 test_name=$(basename "$test_img")
 
 echo "Testing VRN with: ${test_name}"
