@@ -37,24 +37,24 @@ def marching_cubes_gpu(volume, isolevel=0.5, device='cuda'):
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA not available")
     
-    # Ensure volume is on GPU
+    # [DESIGN.B][CAMFM.A2a_GPU_RESIDENCY] Ensure volume is on GPU
     if volume.device.type != 'cuda':
         volume = volume.to(device)
     
     # Get dimensions
     dimZ, dimY, dimX = volume.shape
     
-    # Estimate max vertices/triangles (conservative)
+    # [DESIGN.B][CAMFM.A2c_MEM_LAYOUT] Estimate max vertices/triangles (conservative)
     max_triangles = dimX * dimY * dimZ * 5
     max_vertices = max_triangles * 3
     
-    # Allocate output buffers on GPU
+    # [DESIGN.B][CAMFM.A2c_MEM_LAYOUT] Allocate output buffers on GPU (pre-allocation)
     vertices = torch.zeros((max_vertices, 3), dtype=torch.float32, device=device)
     triangles = torch.zeros((max_triangles, 3), dtype=torch.int32, device=device)
     num_vertices = torch.zeros(1, dtype=torch.int32, device=device)
     num_triangles = torch.zeros(1, dtype=torch.int32, device=device)
     
-    # Call CUDA kernel
+    # [DESIGN.B][CAMFM.A2a_GPU_RESIDENCY] Call CUDA kernel (custom GPU implementation)
     marching_cubes_cuda_ext.marching_cubes_forward(
         volume,
         vertices,

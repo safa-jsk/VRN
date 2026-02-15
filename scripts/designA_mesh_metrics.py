@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
-Design A - Mesh Metrics
+[DESIGN.A][DESIGN.B][CAMFM.A3_METRICS] Mesh Quality Metrics
 Computes Chamfer Distance, F1_tau, and F1_2tau between Design A meshes
 and reference meshes (default: Design B).
+
+Metrics computed:
+- Chamfer Distance (CD): Geometric similarity measure
+- F1_tau: F1 score at threshold tau (precision + recall)
+- F1_2tau: F1 score at threshold 2*tau
 """
 
 import argparse

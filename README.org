@@ -117,6 +117,71 @@ change. Here is a very quick description of them:
 - ~texture~, rudimentary texture mapping by taking the 2D projections
   nearest neighbour (MATLAB only).
 
+** Pipeline Traceability (Thesis Documentation)
+
+This repository has been extended with comprehensive documentation for thesis research on GPU acceleration of 3D face reconstruction. The following documents provide complete traceability from design methodology to implementation:
+
+*** Core Documentation
+
+- [[docs/PIPELINE_OVERVIEW.md][Pipeline Overview]] :: Visual pipeline diagrams and CAMFM methodology mapping
+  - Two Mermaid diagrams: VRN model pipeline + CAMFM framework overlay
+  - Design variant comparison (A, A_GPU, B, C)
+  - Performance impact summary (18.36× GPU speedup)
+
+- [[docs/DESIGNS.md][Design Specifications]] :: Complete specifications for all design variants
+  - Design A: CPU baseline (Torch7, Docker)
+  - Design A_GPU: Simple GPU enablement (conceptual)
+  - Design B: CUDA-optimized with custom marching cubes kernel
+  - Design C: GPU-native data pipeline (DALI, roadmap)
+  - Exact entrypoints, config flags, timing locations
+
+- [[docs/TRACEABILITY_MATRIX.md][Traceability Matrix]] :: Code-level mapping of every pipeline stage
+  - StageID → File Path → Function → Line Range
+  - CAMFM methodology stage mapping (A2a, A2b, A2c, A2d, A3, A5)
+  - Performance impacts and speedup analysis
+  - Evidence artifact index (511 meshes, benchmarks, docs)
+
+- [[docs/BENCHMARK_PROTOCOL.md][Benchmark Protocol]] :: Scientific methodology for reproducible timing
+  - CAMFM.A2b_STEADY_STATE compliance
+  - Warmup requirements (15 iterations)
+  - CUDA synchronization rules
+  - Timing boundary definitions
+  - Multiple run strategy (3× per volume)
+
+*** Design Roadmaps
+
+- [[VRN_DesignA_Roadmap.md][Design A Roadmap]] :: CPU baseline implementation guide
+- [[VRN_DesignB_Roadmap.md][Design B Roadmap]] :: CUDA acceleration implementation
+- [[VRN_DesignC_Roadmap.md][Design C Roadmap]] :: GPU-native data pipeline (future work)
+
+*** Additional Documentation
+
+- [[docs/Design_B_Pipeline_Code_Map.md][Design B Code Map]] :: 18-step pipeline with 100+ code references
+- [[docs/DesignB_Benchmark_Results.md][Design B Results]] :: Benchmark summary (18.36× speedup)
+- [[docs/Batch_Failure_Analysis.md][Failure Analysis]] :: Root cause analysis for detector limitations
+
+*** In-Code Tags
+
+Critical code sections are tagged with ~[DESIGN.*][CAMFM.*]~ comments for thesis traceability:
+
+- ~[DESIGN.B]~ :: Design B implementation markers
+- ~[CAMFM.A2a_GPU_RESIDENCY]~ :: GPU-only execution, no CPU fallbacks
+- ~[CAMFM.A2b_STEADY_STATE]~ :: Warmup + timing synchronization
+- ~[CAMFM.A2c_MEM_LAYOUT]~ :: Pre-allocated buffers + contiguous tensors
+- ~[CAMFM.A3_METRICS]~ :: Quality and performance metrics
+- ~[CAMFM.A5_METHOD]~ :: Evidence bundle and repeatability
+
+*** Evidence Bundle
+
+Results and artifacts:
+
+- ~data/out/designA/~ :: 43 AFLW2000 + 468 300W_LP meshes (Design A baseline)
+- ~data/out/designB/~ :: 43 AFLW2000 meshes + benchmark results (Design B GPU)
+- ~designB/~ :: Complete CUDA implementation (kernel, bindings, Python API)
+- ~scripts/~ :: Batch processing and metrics computation scripts
+
+For thesis Chapter 4 and 5 integration, start with [[docs/PIPELINE_OVERVIEW.md][Pipeline Overview]].
+
 
 
 

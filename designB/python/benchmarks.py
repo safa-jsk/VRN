@@ -33,6 +33,7 @@ from marching_cubes_cuda import marching_cubes_baseline, marching_cubes_gpu_pyto
 # Performance Configuration
 # =============================================================================
 
+# [DESIGN.B][CAMFM.A2b_STEADY_STATE] Performance configuration for GPU benchmarking
 # Global config object (set by configure_performance_flags)
 _PERF_CONFIG = {
     'cudnn_benchmark': True,
@@ -65,13 +66,13 @@ def configure_performance_flags(cudnn_benchmark=True, tf32=True, amp=False,
     _PERF_CONFIG['warmup_iters'] = warmup_iters
     _PERF_CONFIG['initialized'] = True
     
-    # Apply cuDNN benchmark flag
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Apply cuDNN benchmark flag for autotuning
     if cudnn_benchmark:
         torch.backends.cudnn.benchmark = True
     else:
         torch.backends.cudnn.benchmark = False
     
-    # Apply TF32 flags
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Apply TF32 flags for TensorFloat-32 precision
     if tf32:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
@@ -115,11 +116,12 @@ def run_warmup(volume_tensor, threshold=0.5, warmup_iters=None, verbose=True):
     
     t_warmup_start = time.time()
     
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Warmup iterations to reach GPU steady-state
     for i in range(warmup_iters):
         # Run GPU marching cubes (discard results)
         _ = marching_cubes_gpu_pytorch(volume_tensor, threshold)
     
-    # Synchronize after warmup to ensure all kernels complete
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Synchronize after warmup to ensure all kernels complete
     torch.cuda.synchronize()
     
     t_warmup_end = time.time()

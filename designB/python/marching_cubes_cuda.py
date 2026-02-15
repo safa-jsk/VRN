@@ -45,6 +45,7 @@ except ImportError as e:
 # Performance Configuration
 # =============================================================================
 
+# [DESIGN.B][CAMFM.A2b_STEADY_STATE] Performance configuration for GPU benchmarking
 # Global config object (set by configure_performance_flags)
 _PERF_CONFIG = {
     'cudnn_benchmark': True,
@@ -78,13 +79,13 @@ def configure_performance_flags(cudnn_benchmark=True, tf32=True, amp=False,
     _PERF_CONFIG['warmup_iters'] = warmup_iters
     _PERF_CONFIG['initialized'] = True
     
-    # Apply cuDNN benchmark flag
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Apply cuDNN benchmark flag for autotuning
     if cudnn_benchmark:
         torch.backends.cudnn.benchmark = True
     else:
         torch.backends.cudnn.benchmark = False
     
-    # Apply TF32 flags
+    # [DESIGN.B][CAMFM.A2b_STEADY_STATE] Apply TF32 flags for TensorFloat-32 precision
     if tf32:
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
@@ -171,20 +172,22 @@ def marching_cubes_gpu_pytorch(volume_tensor, threshold=0.5):
         faces: Mx3 numpy array
     """
     if USE_CUSTOM_CUDA and torch.cuda.is_available():
-        # Use custom CUDA kernel
+        # [DESIGN.B][CAMFM.A2a_GPU_RESIDENCY] Use custom CUDA kernel - no CPU fallback
         if not volume_tensor.is_cuda:
+            # [DESIGN.B][CAMFM.A2a_GPU_RESIDENCY] Ensure volume is on GPU
             volume_tensor = volume_tensor.cuda()
         
-        # Ensure float32 for CUDA kernel (AMP-safe: kernel always uses float32)
+        # [DESIGN.B][CAMFM.A2c_MEM_LAYOUT] Ensure float32 for CUDA kernel (AMP-safe: kernel always uses float32)
         # This is critical: custom CUDA kernel expects float32, not float16
         if volume_tensor.dtype == torch.bool:
             volume_tensor = volume_tensor.float()
         elif volume_tensor.dtype != torch.float32:
             volume_tensor = volume_tensor.float()  # Convert to float32
         
-        # Note: We do NOT wrap the kernel call in autocast because:
+        # [DESIGN.B][CAMFM.A2d_OPTIONAL_ACCEL] Note: We do NOT wrap the kernel call in autocast because:
         # 1. Custom CUDA kernel expects float32 input
         # 2. AMP autocast would have no effect on custom kernel anyway
+        # [DESIGN.B][CAMFM.A2a_GPU_RESIDENCY] Execute custom CUDA marching cubes kernel
         verts, faces = marching_cubes_gpu(volume_tensor, isolevel=threshold, device='cuda')
         
         # Convert to numpy for compatibility
