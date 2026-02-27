@@ -1,0 +1,15 @@
+# Design C – FaceScape configuration
+# Mirrors DesignB defaults; adjust for FaceScape specifics
+
+pipeline:
+  threshold: 0.5
+  volume_shape: [200, 192, 192]   # Adjust for FaceScape volumes
+
+evaluation:
+  chamfer_samples: 30000          # Point samples for Chamfer distance
+  f1_threshold: 0.01              # F1-score distance threshold (metres)
+
+paths:
+  facescape_root: null            # Set via CLI --facescape_root
+  output_meshes: "artifacts/meshes_facescape"
+  output_eval: "artifacts/eval_facescape"

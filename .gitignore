@@ -1,5 +1,35 @@
+# ── Data / datasets (never tracked) ──
 data/
 300W_LP/
 AFLW2000/
-vrn_env/
+
+# ── Python ──
 __pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+
+# ── Virtual environments ──
+vrn_env/
+.venv/
+venv/
+
+# ── Build artefacts ──
+build/
+**/*.so
+**/*.o
+**/*.a
+
+# ── Artifacts output dir ──
+artifacts/**
+
+# ── IDE / editor ──
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS junk ──
+.DS_Store
+Thumbs.db

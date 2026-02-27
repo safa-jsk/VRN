@@ -1,0 +1,19 @@
+# DesignB default configuration
+# Override via CLI flags or VRN_CONFIG env var
+
+pipeline:
+  threshold: 0.5                # Isosurface threshold (post-bugfix value)
+  volume_shape: [200, 192, 192] # VRN default volume dimensions
+
+benchmark:
+  warmup_iters: 15              # CAMFM A2b steady-state warmup iterations
+  num_runs: 10                  # Timing runs per trial
+
+cuda:
+  sm_version: "sm_86"           # Max supported by CUDA 11.8
+  device: "cuda:0"
+
+paths:
+  volumes: "artifacts/volumes"
+  meshes: "artifacts/meshes"
+  benchmarks: "artifacts/benchmarks"
