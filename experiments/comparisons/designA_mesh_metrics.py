@@ -183,7 +183,7 @@ def main():
 
     chamfer_mod = None
     if not args.cpu_only:
-        chamfer_root = Path(__file__).resolve().parents[1] / "chamfer"
+        chamfer_root = Path(__file__).resolve().parents[2] / "external" / "chamfer_ext"
         chamfer_mod = _load_chamfer_extension(chamfer_root)
 
     pred_meshes = sorted(pred_dir.glob(args.pattern))

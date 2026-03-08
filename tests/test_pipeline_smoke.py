@@ -29,10 +29,13 @@ class TestPipelineSmoke(unittest.TestCase):
         self.assertEqual(cfg["warmup_iters"], 15)
 
     def test_f1_score(self):
-        """Basic F1 computation."""
+        """Basic F1 computation with distance arrays."""
         from src.vrn.metrics import f1_score
-        score = f1_score(tp=80, fp=10, fn=10)
-        self.assertAlmostEqual(score, 0.8, places=5)
+        pred_to_ref = np.array([0.001, 0.002, 0.05, 0.1, 0.2])
+        ref_to_pred = np.array([0.003, 0.004, 0.01, 0.15, 0.25])
+        score = f1_score(pred_to_ref, ref_to_pred, tau=0.1)
+        # pred<=0.1: 4/5=0.8, ref<=0.1: 3/5=0.6, F1=2*0.8*0.6/1.4
+        self.assertAlmostEqual(score, 2 * 0.8 * 0.6 / 1.4, places=5)
 
 
 if __name__ == "__main__":

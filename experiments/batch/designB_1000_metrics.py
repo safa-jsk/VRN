@@ -29,8 +29,7 @@ from typing import Optional, Dict, List, Any, Tuple
 import numpy as np
 from scipy.ndimage import binary_dilation
 
-# Add designB/python to path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "designB" / "python"))
+# Imports resolved via src.designB.*
 
 try:
     import torch
@@ -49,13 +48,13 @@ except ImportError:
 
 # Import marching cubes
 try:
-    from marching_cubes_cuda import (
+    from src.designB.pipeline import (
         configure_performance_flags, 
         run_warmup_once,
         marching_cubes_gpu_pytorch,
         marching_cubes_baseline
     )
-    from volume_io import (
+    from src.designB.io import (
         save_mesh_obj, save_volume_npy, load_volume_npy, 
         volume_to_tensor, get_mesh_stats
     )
@@ -74,7 +73,7 @@ def load_chamfer_extension():
     if not HAS_TORCH:
         return None
     
-    chamfer_root = Path(__file__).resolve().parent.parent / "chamfer"
+    chamfer_root = Path(__file__).resolve().parent.parent.parent / "external" / "chamfer_ext"
     build_dir = chamfer_root / "build"
     
     if not build_dir.exists():

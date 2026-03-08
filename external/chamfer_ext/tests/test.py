@@ -1,8 +1,12 @@
 import sys
 import os
-for file in os.listdir("build"):
-    if file.startswith("lib"):
-        sys.path.insert(0, os.path.join("build", file))
+
+# Look for built extension in parent build/ dir
+build_dir = os.path.join(os.path.dirname(__file__), '..', 'build')
+if os.path.isdir(build_dir):
+    for file in os.listdir(build_dir):
+        if file.startswith("lib"):
+            sys.path.insert(0, os.path.join(build_dir, file))
 
 # torch must be imported before we import chamfer
 import torch

@@ -166,7 +166,7 @@ if [ "$VOLUME_COUNT" -gt 0 ]; then
     STAGE2_START=$(date +%s)
     
     # Run GPU marching cubes
-    python3 designB/python/marching_cubes_cuda.py \
+    python3 -m src.designB.pipeline \
         --input "$VOLUME_DIR" \
         --output "${MESH_DIR}_cuda" \
         --threshold 0.5 \

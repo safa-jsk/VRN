@@ -11,7 +11,7 @@ import argparse
 import json
 from datetime import datetime
 
-from volume_io import load_mesh_obj, get_mesh_stats
+from src.designB.io import load_mesh_obj, get_mesh_stats
 
 
 def compare_meshes(mesh_a, mesh_b):
@@ -254,11 +254,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Verify Design B meshes against Design A baseline'
     )
-    parser.add_argument('--designA', default='data/out/designA',
+    parser.add_argument('--designA', default='artifacts/meshes_designA',
                        help='Design A mesh directory')
-    parser.add_argument('--designB', default='data/out/designB/meshes',
+    parser.add_argument('--designB', default='artifacts/meshes',
                        help='Design B mesh directory')
-    parser.add_argument('--output', default='data/out/designB/verification.json',
+    parser.add_argument('--output', default='artifacts/verification/verification.json',
                        help='Output JSON path for verification results')
     
     args = parser.parse_args()

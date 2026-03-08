@@ -25,8 +25,7 @@ from typing import Optional, Dict, List, Any
 
 import numpy as np
 
-# Add designB/python to path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "designB" / "python"))
+# Imports resolved via src.designB.*
 
 try:
     import torch
@@ -52,7 +51,7 @@ def load_chamfer_extension():
     if not HAS_TORCH:
         return None
     
-    chamfer_root = Path(__file__).resolve().parent.parent / "chamfer"
+    chamfer_root = Path(__file__).resolve().parent.parent.parent / "external" / "chamfer_ext"
     build_dir = chamfer_root / "build"
     
     if not build_dir.exists():
@@ -255,7 +254,7 @@ def run_gpu_marching_cubes(volume_path: Path, output_mesh_path: Path,
     
     try:
         # Import here to avoid loading CUDA at module import
-        from marching_cubes_cuda import process_volume_to_mesh
+        from src.designB.pipeline import process_volume_to_mesh
         
         stats = process_volume_to_mesh(
             volume_path, 

@@ -13,7 +13,7 @@ from pathlib import Path
 import argparse
 from scipy.ndimage import binary_dilation
 
-from volume_io import load_mesh_obj, save_volume_npy
+from src.designB.io import load_mesh_obj, save_volume_npy
 
 
 def mesh_to_volume(mesh, volume_shape=(200, 192, 192), padding=10):

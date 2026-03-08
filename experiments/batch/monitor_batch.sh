@@ -47,8 +47,8 @@ fi
 
 echo ""
 echo "--- Output Files Generated ---"
-OBJ_COUNT=$(find "$WORK_DIR/data/out/designA" -name "*.obj" -type f 2>/dev/null | wc -l)
-NPY_COUNT=$(find "$WORK_DIR/data/out/designA" -name "*.npy" -type f 2>/dev/null | wc -l)
+OBJ_COUNT=$(find "$WORK_DIR/artifacts/meshes" -name "*.obj" -type f 2>/dev/null | wc -l)
+NPY_COUNT=$(find "$WORK_DIR/artifacts/volumes" -name "*.npy" -type f 2>/dev/null | wc -l)
 echo "OBJ meshes: $OBJ_COUNT"
 echo "NPY volumes: $NPY_COUNT"
 

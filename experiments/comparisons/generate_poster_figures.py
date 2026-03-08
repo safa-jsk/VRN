@@ -14,7 +14,7 @@ import json
 import argparse
 from PIL import Image
 
-from volume_io import load_mesh_obj
+from src.designB.io import load_mesh_obj
 
 
 def render_mesh_comparison(mesh_a, mesh_b, title_a='Design A', title_b='Design B'):
