@@ -58,7 +58,7 @@ setup(
         'build_ext': BuildExtension
     },
     install_requires=[
-        f'torch>={torch.__version__}',
+        f'torch>={torch.__version__.split("+")[0]}',
         'numpy>=1.24.0'
     ],
     python_requires='>=3.7'
